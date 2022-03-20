@@ -6,7 +6,9 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import wfdb
 from sklearn.preprocessing import MultiLabelBinarizer
+from tqdm import tqdm
 
 
 def probs_to_tuple(probs: dict[str, int], threshold: int = 20) -> Optional[tuple[str]]:
@@ -134,3 +136,48 @@ def prepare_tabular_data(
 
     with open(os.path.join(output_folder_path, superclasses_mlb_filename), 'wb') as out:
         pickle.dump(superclasses_mlb, out)
+
+
+def prepare_waves(
+        path_to_processed_tabular_data: str,
+        waves_folder_path: str,
+        processed_data_name: str,
+        out_folder: str,
+        sampling_rate: int,
+) -> None:
+    """
+    Collect waves from all over the dataset, split and save after all
+    """
+
+    if sampling_rate not in (100, 500):
+        raise ValueError(
+            f"Sampling rate must be 100 either 500, not {sampling_rate}!"
+        )
+
+    df_filename_column = (
+        "filename_lr" if sampling_rate == 100
+        else "filename_hr"
+    )
+
+    tabular = pd.read_csv(path_to_processed_tabular_data, index_col="ecg_id")
+    train_tabular = tabular[tabular.strat_fold < 9]
+    validation_tabular = tabular[tabular.strat_fold == 9]
+    test_tabular = tabular[tabular.strat_fold == 10]
+
+    tabular = {
+        "train": train_tabular, "validation": validation_tabular, "test": test_tabular
+    }
+
+    for split_name, tabular_data in tabular.items():
+        files = tabular_data[df_filename_column]
+        data = [
+            wfdb.rdsamp(os.path.join(waves_folder_path, file))
+            for file in tqdm(files, f"Collecting {split_name} data")
+        ]
+
+        data = np.array([np.transpose(signal) for signal, __ in data], dtype=np.float64)
+
+        with open(
+            os.path.join(out_folder, f"{processed_data_name}_{split_name}.npy"), "wb"
+        ) as out:
+            pickle.dump(data, out)

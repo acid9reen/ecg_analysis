@@ -175,5 +175,5 @@ def prepare_waves(
             for file in tqdm(files, f"Collecting {split_name} data")
         ]
 
-        data = np.array([np.transpose(signal) for signal, __ in data], dtype=np.float64)
+        data = np.array([np.transpose(signal) for signal, __ in data])
         np.save(os.path.join(out_folder, f"{processed_data_name}_{split_name}"), data)

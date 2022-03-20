@@ -176,8 +176,4 @@ def prepare_waves(
         ]
 
         data = np.array([np.transpose(signal) for signal, __ in data], dtype=np.float64)
-
-        with open(
-            os.path.join(out_folder, f"{processed_data_name}_{split_name}.npy"), "wb"
-        ) as out:
-            pickle.dump(data, out)
+        np.save(os.path.join(out_folder, f"{processed_data_name}_{split_name}"), data)

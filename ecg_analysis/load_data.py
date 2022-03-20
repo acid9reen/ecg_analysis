@@ -2,44 +2,51 @@ import ast
 import os
 import pickle
 from functools import partial
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 
 
-def probs_to_tuple(probs: dict[str, int], threshold: int = 20) -> tuple[str]:
+def probs_to_tuple(probs: dict[str, int], threshold: int = 20) -> Optional[tuple[str]]:
     """
     Convert dict of diagnoses and their probabilities to
     tuple of diagnoses with probabilities >= given threshold.
-    Also if probabilities of diagnoses < probability of NORM, return ("NORM",)
-    else tuple of diagnoses with probabilities >= probability of NORM.
+    If result include diagnose with "NORM" or empty, return NA for later drop
     """
 
-    norm_prob = probs.get("NORM", 0)
+    result = tuple([key for key, value in probs.items() if value >= threshold])
 
-    result = [
-        key for key, value in probs.items() if (
-            value >= threshold and value >= norm_prob  and key != "NORM"
-        )
-    ]
+    is_diagnose_with_norm = ("NORM" in result) and (len(result) > 1)
 
-    return res if (res := tuple(result)) else ("NORM",)
+    if not result or is_diagnose_with_norm:
+        return None
+
+    return result
 
 
-def aggregate_diagnostic(diagnoses: tuple[str], mapping: dict[str, str]):
+def aggregate_diagnostic(
+        diagnoses: Optional[tuple[str]], mapping: dict[str, str]
+) -> Optional[tuple[Optional[str]]]:
     """
     Return values of encountered keys from the given mapping.
     """
 
-    superclasses = {
+    if not diagnoses:
+        return None
+
+    superclasses = tuple({
         superclass
         if pd.notna(superclass := mapping.get(diagnose))
-        else "NONE"
+        else None
         for diagnose in diagnoses
-    }
+    })
 
-    return tuple(superclasses)
+    if None in superclasses:
+        return None
+
+    return superclasses
 
 
 def create_fit_classes_and_superclasses_mlbs(
@@ -50,8 +57,8 @@ def create_fit_classes_and_superclasses_mlbs(
     Fit mlbs, return them.
     """
 
-    classes = tuple(scp_statements.index)
-    superclasses = list(scp_statements.diagnostic_class.unique()) + ["NONE"]
+    classes = tuple(scp_statements[scp_statements.diagnostic_class.notna()].index)
+    superclasses = list(scp_statements.diagnostic_class.unique())
     superclasses = tuple(filter(
         lambda diagnose: isinstance(diagnose, str),
         superclasses
@@ -110,6 +117,8 @@ def prepare_tabular_data(
     )
 
     ptbxl["superclass"] = ptbxl.diagnose.apply(aggregate_diagnostic_class_to_superclass)
+
+    ptbxl = ptbxl.dropna(axis="index", subset=["superclass", "diagnose"])
 
     # Create and fit mlbs
     classes_mlb, superclasses_mlb = create_fit_classes_and_superclasses_mlbs(

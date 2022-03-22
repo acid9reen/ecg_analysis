@@ -79,13 +79,13 @@ class PtbXlWrapper:
 
         # Split labels
         # 1-8 for training
-        self.y_train = tabular[tabular.strat_fold < 9]["diagnose"].to_numpy()
+        self.y_train = tabular[tabular.strat_fold < 9]["mlb_diagnose"].to_numpy()
 
         # 9 for validation
-        self.y_val = tabular[tabular.strat_fold == 9]["diagnose"].to_numpy()
+        self.y_val = tabular[tabular.strat_fold == 9]["mlb_diagnose"].to_numpy()
 
         # 10 for test
-        self.y_test = tabular[tabular.strat_fold == 10]["diagnose"].to_numpy()
+        self.y_test = tabular[tabular.strat_fold == 10]["mlb_diagnose"].to_numpy()
 
     def make_train_dataloader(self) -> DataLoader:
         return DataLoader(

@@ -20,7 +20,7 @@ def main():
     dataset = PtbXlWrapper(
         r"data/raw",
         r"data/processed",
-        "ptbxl_dataset.csv",
+        "ptbxl_database.csv",
         "scp_statements.csv",
         "classes_mlb.pkl",
         "superclasses_mlb.pkl",

@@ -21,7 +21,7 @@ class PtbXlWrapper:
             ptbxl_dataset_filename: str,
             scp_statements_filename: str,
             classes_mlb_filename: str,
-            supercalsses_mlb_filenames: str,
+            superclasses_mlb_filenames: str,
             tabular_filename: str,
             waves_filename: str,
             threshold: int,
@@ -38,7 +38,7 @@ class PtbXlWrapper:
         if not (
             os.path.exists(os.path.join(processed_data_folder, tabular_filename))
             and os.path.exists(os.path.join(processed_data_folder, classes_mlb_filename))
-            and os.path.exists(os.path.join(processed_data_folder, supercalsses_mlb_filenames))
+            and os.path.exists(os.path.join(processed_data_folder, superclasses_mlb_filenames))
         ):
             prepare_tabular_data(
                 os.path.join(raw_data_folder, ptbxl_dataset_filename),
@@ -46,7 +46,7 @@ class PtbXlWrapper:
                 processed_data_folder,
                 tabular_filename,
                 classes_mlb_filename,
-                supercalsses_mlb_filenames,
+                superclasses_mlb_filenames,
                 self.threshold
             )
 
@@ -69,7 +69,7 @@ class PtbXlWrapper:
         with open(os.path.join(processed_data_folder, classes_mlb_filename), "rb") as f:
             self.classes_mlb = pickle.load(f)
 
-        with open(os.path.join(processed_data_folder, supercalsses_mlb_filenames), "rb") as f:
+        with open(os.path.join(processed_data_folder, superclasses_mlb_filenames), "rb") as f:
             self.superclasses_mlb = pickle.load(f)
 
         self.waves_train = np.load(os.path.join(processed_data_folder, f"{waves_filename}_train.npy"))

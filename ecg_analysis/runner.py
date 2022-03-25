@@ -67,7 +67,7 @@ class Runner:
 
         # Compute Batch Test Metrics
         y_np = y.cpu().detach().numpy()
-        prediction = self.thresholder(prediction)
+        prediction = self.thresholder(prediction).ceil()
         y_prediction_np = prediction.cpu().detach().numpy()
 
         batch_accuracy = accuracy_score(y_np, y_prediction_np)

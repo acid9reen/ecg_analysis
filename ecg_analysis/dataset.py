@@ -1,3 +1,4 @@
+import ast
 import os
 import pickle
 
@@ -76,16 +77,17 @@ class PtbXlWrapper:
         self.waves_val = np.load(os.path.join(processed_data_folder, f"{waves_filename}_validation.npy"))
         self.waves_test = np.load(os.path.join(processed_data_folder, f"{waves_filename}_test.npy"))
         tabular = pd.read_csv(os.path.join(processed_data_folder, tabular_filename))
+        tabular["diagnose"] = tabular["diagnose"].apply(ast.literal_eval)
 
         # Split labels
         # 1-8 for training
-        self.y_train = tabular[tabular.strat_fold < 9]["mlb_diagnose"].to_numpy()
+        self.y_train = self.classes_mlb.transform(tabular[tabular.strat_fold < 9]["diagnose"].to_numpy())
 
         # 9 for validation
-        self.y_val = tabular[tabular.strat_fold == 9]["mlb_diagnose"].to_numpy()
+        self.y_val = self.classes_mlb.transform(tabular[tabular.strat_fold == 9]["diagnose"].to_numpy())
 
         # 10 for test
-        self.y_test = tabular[tabular.strat_fold == 10]["mlb_diagnose"].to_numpy()
+        self.y_test = self.classes_mlb.transform(tabular[tabular.strat_fold == 10]["diagnose"].to_numpy())
 
     def make_train_dataloader(self) -> DataLoader:
         return DataLoader(

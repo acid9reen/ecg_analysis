@@ -71,15 +71,6 @@ def create_fit_classes_and_superclasses_mlbs(
     classes_mlb.fit([classes])
     superclasses_mlb.fit([superclasses])
 
-    ptbxl["mlb_diagnose"] = [
-        np.array(diagnose)
-        for diagnose in classes_mlb.transform(ptbxl.diagnose.to_numpy())
-    ]
-    ptbxl["mlb_superclass"] = [
-        np.array(superclass)
-        for superclass in superclasses_mlb.transform(ptbxl.superclass.to_numpy())
-    ]
-
     return classes_mlb, superclasses_mlb
 
 

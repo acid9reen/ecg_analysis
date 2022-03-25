@@ -67,7 +67,7 @@ class Runner:
 
         # Compute Batch Test Metrics
         y_np = y.cpu().detach().numpy()
-        prediction = self.thresholder(prediction)
+        prediction = self.thresholder(prediction).ceil()
         y_prediction_np = prediction.cpu().detach().numpy()
 
         batch_accuracy = accuracy_score(y_np, y_prediction_np)
@@ -110,6 +110,7 @@ def run_epoch(
         np.concatenate(val_runner.y_true_batches),
         np.concatenate(val_runner.y_pred_batches),
         average="samples",
+        zero_division=0,
     )
     experiment.add_epoch_metric("Precision", precision, epoch_id)
     experiment.add_epoch_metric("Recall", recall, epoch_id)
@@ -130,6 +131,7 @@ def run_test(
         np.concatenate(test_runner.y_true_batches),
         np.concatenate(test_runner.y_pred_batches),
         average="samples",
+        zero_division=0,
     )
     experiment.add_epoch_metric("Precision", precision, epoch_id)
     experiment.add_epoch_metric("Recall", recall, epoch_id)

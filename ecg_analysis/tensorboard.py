@@ -21,9 +21,9 @@ def create_experiment_log_dir(root: str) -> str:
 
 class TensorboardExperiment:
     def __init__(self, log_path: str):
-        log_dir = create_experiment_log_dir(root=log_path)
+        self.log_dir = create_experiment_log_dir(root=log_path)
         self._stage = Stage.TRAIN
-        self._writer = SummaryWriter(log_dir=log_dir)
+        self._writer = SummaryWriter(log_dir=self.log_dir)
 
     @property
     def stage(self) -> Stage:

@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 from ecg_analysis.dataset import PtbXlWrapper
@@ -77,6 +79,9 @@ def main():
         tracker.flush()
 
     run_test(test_runner, tracker)
+
+    # Save model weights
+    torch.save(model.state_dict(), os.path.join(tracker.log_dir, "model.pt"))
 
 
 if __name__ == "__main__":

@@ -156,3 +156,6 @@ cython_debug/
 
 # Dataset
 data/
+
+# tensorboard logdir with models' weights
+runs/

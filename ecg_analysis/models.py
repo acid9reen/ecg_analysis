@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 import torch
 from torch import nn
@@ -87,3 +87,103 @@ class SimpleConv(nn.Module):
         wave = self.ln_4(wave)
 
         return torch.sigmoid(wave)
+
+
+def skip_connection_block(
+        in_channels: int,
+        out_channels: int,
+        downsample: int,
+        kernel_size: int,
+) -> nn.Module:
+    block = nn.Sequential(
+        nn.MaxPool1d(kernel_size, stride=downsample, padding=kernel_size // 2),
+        nn.Conv1d(in_channels, out_channels, kernel_size=1),
+    )
+
+    return block
+
+
+def straight_connection_block(
+        in_channels: int,
+        out_channels: int,
+        downsample: int,
+        kernel_size: int,
+        dropout_prob: float = 0.5,
+        activataion: activation_funcs = "relu",
+) -> nn.Module:
+    block = nn.Sequential(
+        nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2),
+        nn.BatchNorm1d(out_channels),
+        activation_func(activataion),
+        nn.Dropout(dropout_prob),
+        nn.Conv1d(out_channels, out_channels, kernel_size, downsample, kernel_size // 2)
+    )
+
+    return block
+
+
+def outer_block(
+        in_channels: int,
+        activation: activation_funcs,
+        dropout_prob: float = 0.5
+) -> nn.Module:
+    block = nn.Sequential(
+        nn.BatchNorm1d(in_channels),
+        activation_func(activation),
+        nn.Dropout(dropout_prob),
+    )
+
+    return block
+
+
+class ResBlk(nn.Module):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            downsample: int,
+            kernel_size: int,
+            dropout_prob: float,
+            activation: activation_funcs,
+            is_first: bool = False,
+    ) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.downsample = downsample
+        self.kernel_size = kernel_size
+        self.dropout_prob = dropout_prob
+        self.activation = activation
+        self.activate = activation_func(activation)
+
+        blocks: list[Optional[nn.Module]] = [
+            None if is_first else outer_block(
+                self.in_channels,
+                self.activation,
+                dropout_prob
+            ),
+            straight_connection_block(
+                self.in_channels,
+                self.out_channels,
+                self.downsample,
+                self.kernel_size,
+                self.dropout_prob,
+            )
+        ]
+
+        self.straight = nn.Sequential(
+            *filter(None, blocks)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = (
+            skip_connection_block(
+                self.in_channels,
+                self.out_channels,
+                self.downsample,
+                self.kernel_size,
+            )(x)
+            + self.straight(x)
+        )
+
+        return x

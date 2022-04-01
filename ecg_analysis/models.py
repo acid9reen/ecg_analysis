@@ -1,3 +1,5 @@
+from functools import reduce
+from operator import mul
 from typing import Literal, Optional
 
 import torch
@@ -186,4 +188,66 @@ class ResBlk(nn.Module):
             + self.straight(x)
         )
 
+        return x
+
+
+class Encoder(nn.Module):
+    def __init__(
+            self,
+            channels_progression: list[int],
+            downsamples: list[int],
+            kernels_sizes: list[int],
+            dropout_probs: list[int],
+            outer_dropout_prob: float = 0.3,
+            activation: activation_funcs = "relu",
+    ) -> None:
+        super().__init__()
+        self.activation: activation_funcs = activation
+        self.last_out_channels = channels_progression[-1]
+        self.outer_dropout_prob = outer_dropout_prob
+
+        in_channels_lst = [channels for channels in channels_progression[:-1]]
+        out_channels_lst = [channels for channels in channels_progression[1:]]
+
+        lengths = {
+            len(in_channels_lst),
+            len(out_channels_lst),
+            len(downsamples),
+            len(kernels_sizes),
+            len(dropout_probs)
+        }
+
+        if len(lengths) != 1:
+            raise ValueError("Mismatching params sizes!")
+
+        is_first = True
+        blocks: list[nn.Module] = []
+
+        for (in_channels, out_channels, downsample, dropout_prob, kernel_size) in zip(
+            in_channels_lst, out_channels_lst, downsamples, dropout_probs, kernels_sizes
+        ):
+            blocks.append(ResBlk(
+                in_channels,
+                out_channels,
+                downsample,
+                kernel_size,
+                dropout_prob,
+                activation,
+                is_first,
+            ))
+
+            is_first = False
+
+        self.res_blk_layer = nn.Sequential(
+            *blocks,
+            outer_block(
+                self.last_out_channels,
+                self.activation,
+                self.outer_dropout_prob,
+            )
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.res_blk_layer(x)
+        x, __ = torch.max(x, 1)  # Global max pooling
         return x

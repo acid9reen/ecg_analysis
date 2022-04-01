@@ -197,7 +197,7 @@ class Encoder(nn.Module):
             channels_progression: list[int],
             downsamples: list[int],
             kernels_sizes: list[int],
-            dropout_probs: list[int],
+            dropout_probs: list[float],
             outer_dropout_prob: float = 0.3,
             activation: activation_funcs = "relu",
     ) -> None:
@@ -259,7 +259,7 @@ class ResidualConvNet(Encoder):
             channels_progression: list[int],
             downsamples: list[int],
             kernels_sizes: list[int],
-            dropout_probs: list[int],
+            dropout_probs: list[float],
             linear_layers_sizes: list[int],
             num_classes: int,
             outer_dropout_prob: float = 0.3,

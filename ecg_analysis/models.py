@@ -249,7 +249,7 @@ class Encoder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.encoder(x)
-        x, __ = torch.max(x, 1)  # Global max pooling
+        x, __ = torch.max(x, 2)  # Global max pooling
         return x
 
 

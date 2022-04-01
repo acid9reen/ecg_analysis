@@ -3,7 +3,7 @@ import os
 import torch
 
 from ecg_analysis.dataset import PtbXlWrapper
-from ecg_analysis.models import SimpleConv
+from ecg_analysis.models import ResidualConvNet, SimpleConv
 from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
 
@@ -42,7 +42,14 @@ def main():
     val_dl = dataset.make_val_dataloader()
 
     # Model and optimizer
-    model = SimpleConv().to(DEVICE)
+    model = ResidualConvNet(
+        [12, 16, 64, 128, 256, 512, 1024, 2048],
+        [2, 2, 2, 2, 2, 2, 2],
+        [5, 5, 3, 3, 3, 3, 3],
+        [0.3 for __ in range(7)],
+        [4096, 1024, 256, 64],
+        44
+    ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
     # Create the runners

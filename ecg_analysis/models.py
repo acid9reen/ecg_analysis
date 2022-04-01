@@ -238,7 +238,7 @@ class Encoder(nn.Module):
 
             is_first = False
 
-        self.res_blk_layer = nn.Sequential(
+        self.encoder = nn.Sequential(
             *blocks,
             outer_block(
                 self.last_out_channels,
@@ -248,7 +248,7 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.res_blk_layer(x)
+        x = self.encoder(x)
         x, __ = torch.max(x, 1)  # Global max pooling
         return x
 

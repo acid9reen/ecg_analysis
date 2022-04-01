@@ -177,18 +177,15 @@ class ResBlk(nn.Module):
             *filter(None, blocks)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = (
-            skip_connection_block(
+        self.skip_connection_block = skip_connection_block(
                 self.in_channels,
                 self.out_channels,
                 self.downsample,
                 self.kernel_size,
-            )(x)
-            + self.straight(x)
-        )
+            )
 
-        return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.skip_connection_block(x) + self.straight(x)
 
 
 class Encoder(nn.Module):

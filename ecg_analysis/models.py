@@ -251,3 +251,48 @@ class Encoder(nn.Module):
         x = self.res_blk_layer(x)
         x, __ = torch.max(x, 1)  # Global max pooling
         return x
+
+
+class ResidualConvNet(Encoder):
+    def __init__(
+            self,
+            channels_progression: list[int],
+            downsamples: list[int],
+            kernels_sizes: list[int],
+            dropout_probs: list[int],
+            linear_layers_sizes: list[int],
+            num_classes: int,
+            outer_dropout_prob: float = 0.3,
+            activation: activation_funcs = "relu",
+    ) -> None:
+        super().__init__(
+            channels_progression,
+            downsamples,
+            kernels_sizes,
+            dropout_probs,
+            outer_dropout_prob,
+            activation,
+        )
+        linear_layers_sizes = [self.last_out_channels] + linear_layers_sizes
+        in_sizes = [sizes for sizes in linear_layers_sizes[:-1]]
+        out_sizes = [sizes for sizes in linear_layers_sizes[1:]]
+
+        lin_blocks: list[nn.Module] = []
+
+        for in_size, out_size in zip(in_sizes, out_sizes):
+            lin_blocks.append(lin_block(in_size, out_size))
+            lin_blocks.append(activation_func(self.activation))
+
+        lin_blocks.append(lin_block(out_sizes[-1], num_classes))
+
+        self.decoder = nn.Sequential(
+            *lin_blocks,
+            nn.Sigmoid()
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = super().forward(x)
+        x = self.decoder(x)
+
+        return x
+

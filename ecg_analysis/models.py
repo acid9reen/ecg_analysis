@@ -1,5 +1,3 @@
-from functools import reduce
-from operator import mul
 from typing import Literal, Optional
 
 import torch

@@ -71,7 +71,8 @@ class Runner:
 
         batch_accuracy = accuracy_score(y_np, y_prediction_np)
         self.accuracy_metric.update(batch_accuracy, batch_size)
-        self.loss.update(loss, batch_size)
+        loss_copy = torch.clone(loss)
+        self.loss.update(loss_copy.cpu().detach().numpy(), batch_size)
 
         self.y_true_batches += [y_np]
         self.y_pred_batches += [y_prediction_np]
@@ -112,6 +113,12 @@ def run_epoch(
     val_runner.run("Validation Batches", experiment)
 
     # Log Validation Epoch Metrics
+    experiment.add_epoch_metric(
+        "Loss",
+        val_runner.avg_loss,
+        epoch_id
+    )
+
     experiment.add_epoch_metric("Accuracy", val_runner.avg_accuracy, epoch_id)
     precision, recall, f1_score, __ = precision_recall_fscore_support(
         np.concatenate(val_runner.y_true_batches),

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class Accuracy:
+class EpochMetric:
     values: list[float] = field(default_factory=list)
     running_total: float = 0.0
     num_updates: float = 0.0

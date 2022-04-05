@@ -23,7 +23,7 @@ class PtbXlWrapper(ABC):
             ptbxl_dataset_filename: str,
             scp_statements_filename: str,
             classes_mlb_filename: str,
-            supercalsses_mlb_filenames: str,
+            superclasses_mlb_filenames: str,
             tabular_filename: str,
             waves_filename: str,
             threshold: int,
@@ -45,7 +45,7 @@ class PtbXlWrapper(ABC):
                 os.path.join(processed_data_folder, classes_mlb_filename)
             )
             and os.path.exists(
-                os.path.join(processed_data_folder, supercalsses_mlb_filenames)
+                os.path.join(processed_data_folder, superclasses_mlb_filenames)
             )
         ):
             prepare_tabular_data(
@@ -54,7 +54,7 @@ class PtbXlWrapper(ABC):
                 processed_data_folder,
                 tabular_filename,
                 classes_mlb_filename,
-                supercalsses_mlb_filenames,
+                superclasses_mlb_filenames,
                 self.threshold
             )
 
@@ -86,7 +86,7 @@ class PtbXlWrapper(ABC):
             self.classes_mlb = pickle.load(f)
 
         with open(os.path.join(
-            processed_data_folder, supercalsses_mlb_filenames
+            processed_data_folder, superclasses_mlb_filenames
         ), "rb") as f:
             self.superclasses_mlb = pickle.load(f)
 
@@ -163,7 +163,7 @@ class PtbXlClasses(PtbXlWrapper):
             ptbxl_dataset_filename: str,
             scp_statements_filename: str,
             classes_mlb_filename: str,
-            supercalsses_mlb_filenames: str,
+            superclasses_mlb_filenames: str,
             tabular_filename: str,
             waves_filename: str,
             threshold: int,
@@ -176,7 +176,7 @@ class PtbXlClasses(PtbXlWrapper):
             ptbxl_dataset_filename,
             scp_statements_filename,
             classes_mlb_filename,
-            supercalsses_mlb_filenames,
+            superclasses_mlb_filenames,
             tabular_filename,
             waves_filename,
             threshold,

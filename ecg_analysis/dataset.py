@@ -41,8 +41,12 @@ class PtbXlWrapper(ABC):
         # Check for prepared data existence, if not, process
         if not (
             os.path.exists(os.path.join(processed_data_folder, tabular_filename))
-            and os.path.exists(os.path.join(processed_data_folder, classes_mlb_filename))
-            and os.path.exists(os.path.join(processed_data_folder, supercalsses_mlb_filenames))
+            and os.path.exists(
+                os.path.join(processed_data_folder, classes_mlb_filename)
+            )
+            and os.path.exists(
+                os.path.join(processed_data_folder, supercalsses_mlb_filenames)
+            )
         ):
             prepare_tabular_data(
                 os.path.join(raw_data_folder, ptbxl_dataset_filename),
@@ -55,9 +59,15 @@ class PtbXlWrapper(ABC):
             )
 
         if not (
-            os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_train.npy"))
-            and os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_test.npy"))
-            and os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_validation.npy"))
+            os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_train.npy")
+            )
+            and os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_test.npy")
+            )
+            and os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_validation.npy")
+            )
         ):
             prepare_waves(
                 os.path.join(processed_data_folder, tabular_filename),
@@ -70,10 +80,14 @@ class PtbXlWrapper(ABC):
         self.classes_mlb: MultiLabelBinarizer
         self.superclasses_mlb: MultiLabelBinarizer
 
-        with open(os.path.join(processed_data_folder, classes_mlb_filename), "rb") as f:
+        with open(os.path.join(
+            processed_data_folder, classes_mlb_filename
+        ), "rb") as f:
             self.classes_mlb = pickle.load(f)
 
-        with open(os.path.join(processed_data_folder, supercalsses_mlb_filenames), "rb") as f:
+        with open(os.path.join(
+            processed_data_folder, supercalsses_mlb_filenames
+        ), "rb") as f:
             self.superclasses_mlb = pickle.load(f)
 
         tabular = pd.read_csv(os.path.join(processed_data_folder, tabular_filename))
@@ -87,15 +101,24 @@ class PtbXlWrapper(ABC):
 
     @property
     def _waves_train(self) -> np.ndarray:
-        return np.load(os.path.join(self.processed_data_folder, f"{self.waves_filename}_train.npy"))
+        return np.load(
+            os.path.join(self.processed_data_folder, f"{self.waves_filename}_train.npy")
+        )
 
     @property
     def waves_val(self) -> np.ndarray:
-        return np.load(os.path.join(self.processed_data_folder, f"{self.waves_filename}_validation.npy"))
+        return np.load(
+            os.path.join(
+                self.processed_data_folder,
+                f"{self.waves_filename}_validation.npy"
+            )
+        )
 
     @property
     def _waves_test(self) -> np.ndarray:
-        return np.load(os.path.join(self.processed_data_folder, f"{self.waves_filename}_test.npy"))
+        return np.load(
+            os.path.join(self.processed_data_folder, f"{self.waves_filename}_test.npy")
+        )
 
     @abstractmethod
     def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:

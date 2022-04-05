@@ -2,7 +2,7 @@ import os
 
 import torch
 
-from ecg_analysis.dataset import PtbXlWrapper
+from ecg_analysis.dataset import PtbXlClasses
 from ecg_analysis.models import ResidualConvNet, SimpleConv
 from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
@@ -22,7 +22,7 @@ print(f"{DEVICE=}")
 
 
 def main():
-    dataset = PtbXlWrapper(
+    dataset = PtbXlClasses(
         r"data/raw",
         r"data/processed",
         "ptbxl_database.csv",

@@ -188,6 +188,42 @@ class PtbXlClasses(PtbXlWrapper):
         return self.classes_mlb.transform(tabular["diagnose"].to_numpy())
 
 
+class PtbXlClassesSuperclasses(PtbXlWrapper):
+    def __init__(
+            self,
+            raw_data_folder: str,
+            processed_data_folder: str,
+            ptbxl_dataset_filename: str,
+            scp_statements_filename: str,
+            classes_mlb_filename: str,
+            superclasses_mlb_filenames: str,
+            tabular_filename: str,
+            waves_filename: str,
+            threshold: int,
+            sampling_rate: int=100,
+            batch_size: int = 64,
+    ) -> None:
+        super().__init__(
+            raw_data_folder,
+            processed_data_folder,
+            ptbxl_dataset_filename,
+            scp_statements_filename,
+            classes_mlb_filename,
+            superclasses_mlb_filenames,
+            tabular_filename,
+            waves_filename,
+            threshold,
+            sampling_rate,
+            batch_size,
+        )
+
+    def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:
+        return np.hstack((
+            self.classes_mlb.transform(tabular["diagnose"].to_numpy()),
+            self.superclasses_mlb.transform(tabular["superclass"].to_numpy())
+        ))
+
+
 class PtbXl(Dataset):
     """Implement ptbxl dataset"""
     features: np.ndarray

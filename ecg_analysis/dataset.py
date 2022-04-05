@@ -1,6 +1,7 @@
 import ast
 import os
 import pickle
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ from torch.utils.data.dataloader import DataLoader
 from ecg_analysis.load_data import prepare_tabular_data, prepare_waves
 
 
-class PtbXlWrapper:
+class PtbXlWrapper(ABC):
     """Store train/test/validation waves and tabular data """
 
     def __init__(
@@ -22,7 +23,7 @@ class PtbXlWrapper:
             ptbxl_dataset_filename: str,
             scp_statements_filename: str,
             classes_mlb_filename: str,
-            supercalsses_mlb_filenames: str,
+            superclasses_mlb_filenames: str,
             tabular_filename: str,
             waves_filename: str,
             threshold: int,
@@ -34,12 +35,18 @@ class PtbXlWrapper:
         self.sampling_rate = sampling_rate
         self.batch_size = batch_size
         self.threshold = threshold
+        self.processed_data_folder = processed_data_folder
+        self.waves_filename = waves_filename
 
         # Check for prepared data existence, if not, process
         if not (
             os.path.exists(os.path.join(processed_data_folder, tabular_filename))
-            and os.path.exists(os.path.join(processed_data_folder, classes_mlb_filename))
-            and os.path.exists(os.path.join(processed_data_folder, supercalsses_mlb_filenames))
+            and os.path.exists(
+                os.path.join(processed_data_folder, classes_mlb_filename)
+            )
+            and os.path.exists(
+                os.path.join(processed_data_folder, superclasses_mlb_filenames)
+            )
         ):
             prepare_tabular_data(
                 os.path.join(raw_data_folder, ptbxl_dataset_filename),
@@ -47,14 +54,20 @@ class PtbXlWrapper:
                 processed_data_folder,
                 tabular_filename,
                 classes_mlb_filename,
-                supercalsses_mlb_filenames,
+                superclasses_mlb_filenames,
                 self.threshold
             )
 
         if not (
-            os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_train.npy"))
-            and os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_test.npy"))
-            and os.path.exists(os.path.join(processed_data_folder, f"{waves_filename}_validation.npy"))
+            os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_train.npy")
+            )
+            and os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_test.npy")
+            )
+            and os.path.exists(os.path.join(
+                processed_data_folder, f"{waves_filename}_validation.npy")
+            )
         ):
             prepare_waves(
                 os.path.join(processed_data_folder, tabular_filename),
@@ -67,31 +80,65 @@ class PtbXlWrapper:
         self.classes_mlb: MultiLabelBinarizer
         self.superclasses_mlb: MultiLabelBinarizer
 
-        with open(os.path.join(processed_data_folder, classes_mlb_filename), "rb") as f:
+        with open(os.path.join(
+            processed_data_folder, classes_mlb_filename
+        ), "rb") as f:
             self.classes_mlb = pickle.load(f)
 
-        with open(os.path.join(processed_data_folder, supercalsses_mlb_filenames), "rb") as f:
+        with open(os.path.join(
+            processed_data_folder, superclasses_mlb_filenames
+        ), "rb") as f:
             self.superclasses_mlb = pickle.load(f)
 
-        self.waves_train = np.load(os.path.join(processed_data_folder, f"{waves_filename}_train.npy"))
-        self.waves_val = np.load(os.path.join(processed_data_folder, f"{waves_filename}_validation.npy"))
-        self.waves_test = np.load(os.path.join(processed_data_folder, f"{waves_filename}_test.npy"))
         tabular = pd.read_csv(os.path.join(processed_data_folder, tabular_filename))
         tabular["diagnose"] = tabular["diagnose"].apply(ast.literal_eval)
+        tabular["superclass"] = tabular["superclass"].apply(ast.literal_eval)
 
-        # Split labels
-        # 1-8 for training
-        self.y_train = self.classes_mlb.transform(tabular[tabular.strat_fold < 9]["diagnose"].to_numpy())
+        self.labels = self.prepare_labels(tabular)
+        self.labels_indices_train = tabular["strat_fold"] < 9
+        self.labels_indices_val = tabular["strat_fold"] == 9
+        self.labels_indices_test = tabular["strat_fold"] == 10
 
-        # 9 for validation
-        self.y_val = self.classes_mlb.transform(tabular[tabular.strat_fold == 9]["diagnose"].to_numpy())
+    @property
+    def _waves_train(self) -> np.ndarray:
+        return np.load(
+            os.path.join(self.processed_data_folder, f"{self.waves_filename}_train.npy")
+        )
 
-        # 10 for test
-        self.y_test = self.classes_mlb.transform(tabular[tabular.strat_fold == 10]["diagnose"].to_numpy())
+    @property
+    def waves_val(self) -> np.ndarray:
+        return np.load(
+            os.path.join(
+                self.processed_data_folder,
+                f"{self.waves_filename}_validation.npy"
+            )
+        )
+
+    @property
+    def _waves_test(self) -> np.ndarray:
+        return np.load(
+            os.path.join(self.processed_data_folder, f"{self.waves_filename}_test.npy")
+        )
+
+    @abstractmethod
+    def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:
+        ...
+
+    @property
+    def y_train(self) -> np.ndarray:
+        return self.labels[self.labels_indices_train]
+
+    @property
+    def y_val(self) -> np.ndarray:
+        return self.labels[self.labels_indices_val]
+
+    @property
+    def y_test(self) -> np.ndarray:
+        return self.labels[self.labels_indices_test]
 
     def make_train_dataloader(self) -> DataLoader:
         return DataLoader(
-            PtbXl(self.waves_train, self.y_train),
+            PtbXl(self._waves_train, self.y_train),
             batch_size=self.batch_size
         )
 
@@ -103,22 +150,91 @@ class PtbXlWrapper:
 
     def make_test_dataloader(self) -> DataLoader:
         return DataLoader(
-            PtbXl(self.waves_test, self.y_test),
+            PtbXl(self._waves_test, self.y_test),
             batch_size=self.batch_size
         )
 
 
+class PtbXlClasses(PtbXlWrapper):
+    def __init__(
+            self,
+            raw_data_folder: str,
+            processed_data_folder: str,
+            ptbxl_dataset_filename: str,
+            scp_statements_filename: str,
+            classes_mlb_filename: str,
+            superclasses_mlb_filenames: str,
+            tabular_filename: str,
+            waves_filename: str,
+            threshold: int,
+            sampling_rate: int=100,
+            batch_size: int = 64,
+    ) -> None:
+        super().__init__(
+            raw_data_folder,
+            processed_data_folder,
+            ptbxl_dataset_filename,
+            scp_statements_filename,
+            classes_mlb_filename,
+            superclasses_mlb_filenames,
+            tabular_filename,
+            waves_filename,
+            threshold,
+            sampling_rate,
+            batch_size,
+        )
+
+    def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:
+        return self.classes_mlb.transform(tabular["diagnose"].to_numpy())
+
+
+class PtbXlClassesSuperclasses(PtbXlWrapper):
+    def __init__(
+            self,
+            raw_data_folder: str,
+            processed_data_folder: str,
+            ptbxl_dataset_filename: str,
+            scp_statements_filename: str,
+            classes_mlb_filename: str,
+            superclasses_mlb_filenames: str,
+            tabular_filename: str,
+            waves_filename: str,
+            threshold: int,
+            sampling_rate: int=100,
+            batch_size: int = 64,
+    ) -> None:
+        super().__init__(
+            raw_data_folder,
+            processed_data_folder,
+            ptbxl_dataset_filename,
+            scp_statements_filename,
+            classes_mlb_filename,
+            superclasses_mlb_filenames,
+            tabular_filename,
+            waves_filename,
+            threshold,
+            sampling_rate,
+            batch_size,
+        )
+
+    def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:
+        return np.hstack((
+            self.classes_mlb.transform(tabular["diagnose"].to_numpy()),
+            self.superclasses_mlb.transform(tabular["superclass"].to_numpy())
+        ))
+
+
 class PtbXl(Dataset):
     """Implement ptbxl dataset"""
-    features: torch.Tensor
-    labels: torch.Tensor
+    features: np.ndarray
+    labels: np.ndarray
     index: int
     length: int
 
     def __init__(
             self,
-            features: torch.Tensor,
-            labels: torch.Tensor,
+            features: np.ndarray,
+            labels: np.ndarray,
     ) -> None:
         """Create dataset from user features and labels"""
 

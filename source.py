@@ -2,8 +2,9 @@ import os
 
 import torch
 
-from ecg_analysis.dataset import PtbXlClasses
-from ecg_analysis.models import ResidualConvNet, SimpleConv
+from ecg_analysis.dataset import PtbXlClasses, PtbXlClassesSuperclasses
+from ecg_analysis.models import (ResidualConvNet, ResidualConvNetMixed,
+                                 SimpleConv)
 from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
 
@@ -22,7 +23,7 @@ print(f"{DEVICE=}")
 
 
 def main():
-    dataset = PtbXlClasses(
+    dataset = PtbXlClassesSuperclasses(
         r"data/raw",
         r"data/processed",
         "ptbxl_database.csv",
@@ -42,12 +43,14 @@ def main():
     val_dl = dataset.make_val_dataloader()
 
     # Model and optimizer
-    model = ResidualConvNet(
-        [12, 16, 64, 128, 256, 512, 1024, 2048],
-        [2, 2, 2, 2, 2, 2, 2],
-        [5, 5, 3, 3, 3, 3, 3],
-        [0.3 for __ in range(7)],
-        [4096, 1024, 256, 64],
+    model = ResidualConvNetMixed(
+        [12, 64, 128, 256, 512],
+        [2, 2, 2, 2],
+        [5, 5, 3, 3],
+        [0.3 for __ in range(4)],
+        [128],
+        [128],
+        5,
         44
     ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)

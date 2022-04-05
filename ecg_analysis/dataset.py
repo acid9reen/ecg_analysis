@@ -167,15 +167,15 @@ class PtbXlClasses(PtbXlWrapper):
 
 class PtbXl(Dataset):
     """Implement ptbxl dataset"""
-    features: torch.Tensor
-    labels: torch.Tensor
+    features: np.ndarray
+    labels: np.ndarray
     index: int
     length: int
 
     def __init__(
             self,
-            features: torch.Tensor,
-            labels: torch.Tensor,
+            features: np.ndarray,
+            labels: np.ndarray,
     ) -> None:
         """Create dataset from user features and labels"""
 

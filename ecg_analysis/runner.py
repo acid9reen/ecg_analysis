@@ -1,8 +1,12 @@
 from typing import Literal, Optional
 
+import matplotlib
 import numpy as np
 import torch
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from matplotlib import pyplot as plt
+from sklearn.metrics import (ConfusionMatrixDisplay, accuracy_score,
+                             multilabel_confusion_matrix,
+                             precision_recall_fscore_support)
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
@@ -134,12 +138,19 @@ def run_epoch(
 def run_test(
         test_runner: Runner,
         experiment: TensorboardExperiment,
+        classes: list[str],
 ) -> None:
     epoch_id = 0
 
     experiment.stage = Stage.TEST
     test_runner.run("Test Batches", experiment)
+    fig = cf_img(
+        test_runner.y_true_batches,
+        test_runner.y_pred_batches,
+        classes
+    )
 
+    experiment.add_epoch_img(fig)
     experiment.add_epoch_metric("Accuracy", test_runner.avg_accuracy, epoch_id)
     precision, recall, f1_score, __ = precision_recall_fscore_support(
         np.concatenate(test_runner.y_true_batches),
@@ -150,3 +161,36 @@ def run_test(
     experiment.add_epoch_metric("Precision", precision, epoch_id)
     experiment.add_epoch_metric("Recall", recall, epoch_id)
     experiment.add_epoch_metric("f1_score", f1_score, epoch_id)
+
+
+def cf_img(
+        y_true_batches: list,
+        y_pred_batches: list,
+        classes: list[str],
+) -> matplotlib.figure.Figure:
+    confusion_matrices = multilabel_confusion_matrix(
+        np.concatenate(y_true_batches),
+        np.concatenate(y_pred_batches),
+    )
+
+    biggest_classes_conf_matrices = sorted(
+        zip(classes, confusion_matrices),
+        key=lambda x: x[1][1][0],
+        reverse=True
+    )
+
+    biggest_classes_conf_matrices = (
+        biggest_classes_conf_matrices[:2]
+        + biggest_classes_conf_matrices[-2:]
+    )
+
+    fig, axes = plt.subplots(1, 4, figsize=(20, 7), dpi=87)
+    axes = axes.ravel()
+
+    for axe, (title, cf) in zip(axes, biggest_classes_conf_matrices):
+        disp = ConfusionMatrixDisplay(cf)
+        disp.plot(ax=axe)
+        disp.im_.colorbar.remove()
+        disp.ax_.set_title(title)
+
+    return fig

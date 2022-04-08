@@ -88,7 +88,12 @@ def main():
         # Flush the tracker after every epoch for live updates
         tracker.flush()
 
-    run_test(test_runner, tracker)
+    classes = (
+        list(dataset.classes_mlb.classes_)
+        + list(dataset.superclasses_mlb.classes_)
+    )
+
+    run_test(test_runner, tracker, classes)
 
     # Save model weights
     torch.save(model.state_dict(), os.path.join(tracker.log_dir, "model.pt"))

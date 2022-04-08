@@ -1,6 +1,7 @@
 import os
 from datetime import datetime as dt
 
+import matplotlib
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from ecg_analysis.tracking import Stage
@@ -43,3 +44,10 @@ class TensorboardExperiment:
     def add_epoch_metric(self, name: str, value: float, step: int) -> None:
         tag = f"{self.stage.name}/epoch/{name}"
         self._writer.add_scalar(tag, value, step)
+
+    def add_epoch_img(
+            self,
+            fig: matplotlib.figure.Figure
+    ) -> None:
+        tag = f"{self.stage.name}/epoch/confusion_matrix"
+        self._writer.add_figure(tag, fig, 0)

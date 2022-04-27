@@ -9,10 +9,11 @@ from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
 
 # Hyperparameters
-EPOCH_COUNT = 20
+EPOCH_COUNT = 3
 LR = 8e-4
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 LOG_PATH = "./runs"
+CLASS_SUPERCLASS_PENALTY_RATIO = 0.5  # how many times the loss is less for classes than for superclasses
 
 # Data configuration
 DATA_DIR = "data"
@@ -34,7 +35,7 @@ def main():
         "waves",
         threshold=100,
         sampling_rate=100,
-        batch_size=64,
+        batch_size=BATCH_SIZE,
     )
 
     # Create the data loaders
@@ -54,10 +55,13 @@ def main():
         44
     ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    weight = torch.ones([BATCH_SIZE, 49], dtype=torch.float32)
+    weight[:, :-5] *= CLASS_SUPERCLASS_PENALTY_RATIO
+    weight = weight.to(DEVICE)
 
     # Create the runners
     test_runner = Runner(test_dl, model, device=DEVICE)
-    train_runner = Runner(train_dl, model, optimizer, device=DEVICE)
+    train_runner = Runner(train_dl, model, optimizer, device=DEVICE, weight=weight)
     val_runner = Runner(val_dl, model, device=DEVICE)
 
     # Setup the experiment tracker

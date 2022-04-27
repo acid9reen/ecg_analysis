@@ -23,6 +23,7 @@ class Runner:
             optimizer: Optional[torch.optim.Optimizer] = None,
             threshold: float = 0.5,
             device: Literal["cpu", "cuda"] = "cpu",
+            weight: Optional[torch.Tensor] = None,
     ) -> None:
         self.run_count = 0
         self.loader = loader
@@ -34,7 +35,12 @@ class Runner:
         self.thresholder = torch.nn.Threshold(threshold, 0)
 
         # Objective (loss) function
-        self.compute_loss = torch.nn.BCELoss(reduction="mean")
+        loss_params = {"reduction": "mean"}
+        if weight is not None:
+            loss_params["weight"] = weight
+
+        self.compute_loss = torch.nn.BCELoss(**loss_params)
+
         self.y_true_batches = []
         self.y_pred_batches = []
 

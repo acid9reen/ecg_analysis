@@ -29,6 +29,7 @@ class PtbXlWrapper(ABC):
             threshold: int,
             sampling_rate: int=100,
             batch_size: int = 64,
+            drop_last: bool = False,
     ) -> None:
         """Separate data into train/test/val datasets"""
 
@@ -37,6 +38,7 @@ class PtbXlWrapper(ABC):
         self.threshold = threshold
         self.processed_data_folder = processed_data_folder
         self.waves_filename = waves_filename
+        self.drop_last = drop_last
 
         # Check for prepared data existence, if not, process
         if not (
@@ -139,19 +141,22 @@ class PtbXlWrapper(ABC):
     def make_train_dataloader(self) -> DataLoader:
         return DataLoader(
             PtbXl(self._waves_train, self.y_train),
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
+            drop_last=self.drop_last,
         )
 
     def make_val_dataloader(self) -> DataLoader:
         return DataLoader(
             PtbXl(self.waves_val, self.y_val),
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
+            drop_last=self.drop_last,
         )
 
     def make_test_dataloader(self) -> DataLoader:
         return DataLoader(
             PtbXl(self._waves_test, self.y_test),
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
+            drop_last=self.drop_last,
         )
 
 
@@ -215,6 +220,7 @@ class PtbXlClassesSuperclasses(PtbXlWrapper):
             threshold,
             sampling_rate,
             batch_size,
+            drop_last=True
         )
 
     def prepare_labels(self, tabular: pd.DataFrame) -> np.ndarray:

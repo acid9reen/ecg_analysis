@@ -193,7 +193,7 @@ class Encoder(nn.Module):
             downsamples: list[int],
             kernels_sizes: list[int],
             dropout_probs: list[float],
-            outer_dropout_prob: float = 0.5,
+            outer_dropout_prob: float = 0.3,
             activation: activation_funcs = "relu",
     ) -> None:
         super().__init__()
@@ -356,47 +356,3 @@ class ResidualConvNetMixed(Encoder):
         classes = self.decoder_2(torch.cat((embeddings, superclasses), 1))
 
         return torch.cat((classes, superclasses), 1)
-
-
-class ResidualConvNetSuperclasses(Encoder):
-    def __init__(
-            self,
-            channels_progression: list[int],
-            downsamples: list[int],
-            kernels_sizes: list[int],
-            dropout_probs: list[float],
-            linear_layers_sizes_1: list[int],
-            num_superclasses: int,
-            outer_dropout_prob: float = 0.3,
-            activation: activation_funcs = "relu",
-    ) -> None:
-        super().__init__(
-            channels_progression,
-            downsamples,
-            kernels_sizes,
-            dropout_probs,
-            outer_dropout_prob,
-            activation,
-        )
-        linear_layers_sizes_1 = [self.last_out_channels] + linear_layers_sizes_1
-        in_sizes_1 = [sizes for sizes in linear_layers_sizes_1[:-1]]
-        out_sizes_1 = [sizes for sizes in linear_layers_sizes_1[1:]]
-
-        lin_blocks_1: list[nn.Module] = []
-
-        for in_size, out_size in zip(in_sizes_1, out_sizes_1):
-            lin_blocks_1.append(lin_block(in_size, out_size))
-            lin_blocks_1.append(activation_func(self.activation))
-
-        lin_blocks_1.append(lin_block(out_sizes_1[-1], num_superclasses))
-
-        self.decoder_1 = nn.Sequential(
-            *lin_blocks_1,
-            nn.Sigmoid()
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        embeddings = super().forward(x)
-        superclasses = self.decoder_1(embeddings)
-
-        return superclasses

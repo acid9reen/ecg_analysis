@@ -2,17 +2,18 @@ import os
 
 import torch
 
-from ecg_analysis.dataset import PtbXlSuperclasses
-from ecg_analysis.models import ResidualConvNetSuperclasses
+from ecg_analysis.dataset import PtbXlClasses, PtbXlClassesSuperclasses
+from ecg_analysis.models import (ResidualConvNet, ResidualConvNetMixed,
+                                 SimpleConv)
 from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
 
 # Hyperparameters
-EPOCH_COUNT = 150
-LR = 3e-4
-BATCH_SIZE = 256
+EPOCH_COUNT = 3
+LR = 8e-4
+BATCH_SIZE = 64
 LOG_PATH = "./runs"
-CLASS_SUPERCLASS_PENALTY_RATIO = 0.3  # how many times the loss is less for classes than for superclasses
+CLASS_SUPERCLASS_PENALTY_RATIO = 0.5  # how many times the loss is less for classes than for superclasses
 
 # Data configuration
 DATA_DIR = "data"
@@ -23,7 +24,7 @@ print(f"{DEVICE=}")
 
 
 def main():
-    dataset = PtbXlSuperclasses(
+    dataset = PtbXlClassesSuperclasses(
         r"data/raw",
         r"data/processed",
         "ptbxl_database.csv",
@@ -43,20 +44,24 @@ def main():
     val_dl = dataset.make_val_dataloader()
 
     # Model and optimizer
-    model = ResidualConvNetSuperclasses(
+    model = ResidualConvNetMixed(
         [12, 64, 128, 256, 512],
         [2, 2, 2, 2],
-        [5, 3, 2, 2],
-        [0.5 for __ in range(4)],
-        [64],
-        5
+        [5, 5, 3, 3],
+        [0.3 for __ in range(4)],
+        [128],
+        [128],
+        5,
+        44
     ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    
+    weight = torch.ones([BATCH_SIZE, 49], dtype=torch.float32)
+    weight[:, :-5] *= CLASS_SUPERCLASS_PENALTY_RATIO
+    weight = weight.to(DEVICE)
 
     # Create the runners
     test_runner = Runner(test_dl, model, device=DEVICE)
-    train_runner = Runner(train_dl, model, optimizer, device=DEVICE)
+    train_runner = Runner(train_dl, model, optimizer, device=DEVICE, weight=weight)
     val_runner = Runner(val_dl, model, device=DEVICE)
 
     # Setup the experiment tracker
@@ -87,7 +92,10 @@ def main():
         # Flush the tracker after every epoch for live updates
         tracker.flush()
 
-    classes = list(dataset.superclasses_mlb.classes_)
+    classes = (
+        list(dataset.classes_mlb.classes_)
+        + list(dataset.superclasses_mlb.classes_)
+    )
 
     run_test(test_runner, tracker, classes)
 

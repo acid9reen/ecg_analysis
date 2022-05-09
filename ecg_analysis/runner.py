@@ -186,11 +186,11 @@ def cf_img(
     )
 
     biggest_classes_conf_matrices = (
-        biggest_classes_conf_matrices[:2]
+        biggest_classes_conf_matrices[:3]
         + biggest_classes_conf_matrices[-2:]
     )
 
-    fig, axes = plt.subplots(1, 4, figsize=(20, 7), dpi=87)
+    fig, axes = plt.subplots(1, 5, figsize=(20, 7), dpi=87)
     axes = axes.ravel()
 
     for axe, (title, cf) in zip(axes, biggest_classes_conf_matrices):

@@ -1,6 +1,7 @@
 import os
 
 import torch
+from torchinfo import summary
 
 from ecg_analysis.dataset import PtbXlClasses, PtbXlClassesSuperclasses
 from ecg_analysis.models import (ResidualConvNet, ResidualConvNetMixed,
@@ -9,9 +10,9 @@ from ecg_analysis.runner import Runner, run_epoch, run_test
 from ecg_analysis.tensorboard import TensorboardExperiment
 
 # Hyperparameters
-EPOCH_COUNT = 3
-LR = 8e-4
-BATCH_SIZE = 64
+EPOCH_COUNT = 150
+LR = 4e-4
+BATCH_SIZE = 128
 LOG_PATH = "./runs"
 CLASS_SUPERCLASS_PENALTY_RATIO = 0.5  # how many times the loss is less for classes than for superclasses
 
@@ -24,6 +25,39 @@ print(f"{DEVICE=}")
 
 
 def main():
+    # Model and optimizer
+    model = ResidualConvNetMixed(
+        channels_progression=[12, 64, 128, 256, 512],
+        downsamples=[2, 2, 2, 2],
+        kernels_sizes=[3, 3, 3, 3],
+        dropout_probs=[0.5 for __ in range(4)],
+        linear_layers_sizes_1=[64],
+        linear_layers_sizes_2=[128],
+        num_superclasses=5,
+        num_classes=44,
+        outer_dropout_prob=0.5,
+    ).to(DEVICE)
+
+    # model = ResidualConvNet(
+    #     channels_progression=[12, 64, 128, 256, 512],
+    #     downsamples=[2, 2, 2, 2],
+    #     kernels_sizes=[3, 3, 3, 3],
+    #     dropout_probs=[0.5 for __ in range(4)],
+    #     linear_layers_sizes=[64],
+    #     num_classes=44,
+    #     outer_dropout_prob=0.5,
+    # ).to(DEVICE)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    weight = torch.ones([BATCH_SIZE, 49], dtype=torch.float32)
+    weight[:, :-5] *= CLASS_SUPERCLASS_PENALTY_RATIO
+    weight = weight.to(DEVICE)
+
+    # Uncomment to get model summary
+    # summary(model, input_size=(BATCH_SIZE, 12, 1000))
+    # return
+
+    # Data reading and dataloaders
     dataset = PtbXlClassesSuperclasses(
         r"data/raw",
         r"data/processed",
@@ -42,22 +76,6 @@ def main():
     train_dl = dataset.make_train_dataloader()
     test_dl = dataset.make_test_dataloader()
     val_dl = dataset.make_val_dataloader()
-
-    # Model and optimizer
-    model = ResidualConvNetMixed(
-        [12, 64, 128, 256, 512],
-        [2, 2, 2, 2],
-        [5, 5, 3, 3],
-        [0.3 for __ in range(4)],
-        [128],
-        [128],
-        5,
-        44
-    ).to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    weight = torch.ones([BATCH_SIZE, 49], dtype=torch.float32)
-    weight[:, :-5] *= CLASS_SUPERCLASS_PENALTY_RATIO
-    weight = weight.to(DEVICE)
 
     # Create the runners
     test_runner = Runner(test_dl, model, device=DEVICE)
